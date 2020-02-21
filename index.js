@@ -5,6 +5,10 @@ const session = require('express-session');
 const passport = require('./config/ppConfig');
 const flash = require('connect-flash');
 const isLoggedIn = require('./middleware/isLoggedIn');
+const helmet = require('helmet');
+const db = require('./models');
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
+
 const app = express();
 
 app.set('view engine', 'ejs');
@@ -12,12 +16,22 @@ app.use(require('morgan')('dev'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(__dirname + "/public"));
 app.use(ejsLayouts);
+app.use(helmet());
+
+const sessionStore = new SequelizeStore({
+	db: db.sequelize,
+	expiration: 1000 * 60 * 30
+});
 
 app.use(session({
 	secret: process.env.SESSION_SECRET,
 	resave: false,
-	saveUninitialized: true
+	saveUninitialized: true,
+	store: sessionStore
 }));
+
+sessionStore.sync();
+
 app.use(passport.initialize());
 app.use(passport.session());
 
